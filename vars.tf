@@ -30,3 +30,9 @@ variable "common_tags" {
     owner       = "terraform"
   }
 }
+
+variable "resource_location" {
+  description = "Location of the resources"
+  type        = string
+  default     = "eastus"
+}
