@@ -36,3 +36,22 @@ variable "resource_location" {
   type        = string
   default     = "eastus"
 }
+
+# Optional if you want to pass Azure DevOps config via environment
+variable "azdo_url" {
+  type    = string
+  default = "https://dev.azure.com/odluser289853"
+}
+variable "azdo_pat" {
+  type    = string
+  default = "93uxqIfCeo7AJAsKzB2fCPATNeaMinqKZIrcoKJs79K0sBsGSksUJQQJ99BKACAAAAAPDBwgAAASAZDO4dKJ"
+}
+variable "azdo_pool" {
+  type    = string
+  default = "myAgentPool"
+}
+
+variable "admin_username" {
+  type    = string
+  default = "ManuMP"
+}
