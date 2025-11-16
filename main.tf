@@ -1,6 +1,6 @@
 provider "azurerm" {
   features {}
-  subscription_id = "99c360d5-5a1d-45b7-93ae-80a16feaccb7"
+  subscription_id = "630a1e98-7922-4c13-9488-39768dd9328d"
 }
 
 data "azurerm_resource_group" "main" {
@@ -154,4 +154,98 @@ resource "azurerm_linux_virtual_machine" "vm" {
 
 output "public_ip" {
   value = azurerm_public_ip.vm_ip.ip_address
+}
+
+
+# New VM for selenium test
+#############################################
+# Public IP for Selenium VM
+#############################################
+resource "azurerm_public_ip" "selenium_ip" {
+  name                = "seleniumvm-public-ip"
+  location            = var.resource_location
+  resource_group_name = data.azurerm_resource_group.main.name
+  allocation_method   = "Static"
+  sku                 = "Standard"
+}
+
+#############################################
+# NSG for Selenium VM
+#############################################
+resource "azurerm_network_security_group" "selenium_nsg" {
+  name                = "seleniumvm-nsg"
+  location            = var.resource_location
+  resource_group_name = data.azurerm_resource_group.main.name
+
+  security_rule {
+    name                       = "Allow-SSH"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+}
+
+#############################################
+# NIC for Selenium VM
+#############################################
+resource "azurerm_network_interface" "selenium_nic" {
+  name                = "seleniumvm-nic"
+  location            = var.resource_location
+  resource_group_name = data.azurerm_resource_group.main.name
+
+  ip_configuration {
+    name                          = "internal"
+    subnet_id                     = azurerm_subnet.subnet.id
+    private_ip_address_allocation = "Dynamic"
+    public_ip_address_id          = azurerm_public_ip.selenium_ip.id
+  }
+}
+
+resource "azurerm_network_interface_security_group_association" "selenium_nsg_assoc" {
+  network_interface_id      = azurerm_network_interface.selenium_nic.id
+  network_security_group_id = azurerm_network_security_group.selenium_nsg.id
+}
+
+#############################################
+# Selenium Linux VM
+#############################################
+resource "azurerm_linux_virtual_machine" "selenium_vm" {
+  name                = "selenium-test-vm"
+  location            = var.resource_location
+  resource_group_name = data.azurerm_resource_group.main.name
+  size                = "Standard_B1s"
+
+  admin_username                  = "ManuMP"
+  admin_password                  = "Staple17121980@"   # Change this
+  disable_password_authentication = false
+
+  network_interface_ids = [
+    azurerm_network_interface.selenium_nic.id
+  ]
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "ubuntu-24_04-lts"
+    sku       = "server"
+    version   = "latest"
+  }
+
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
+
+  # Simple cloud-init; replace with Selenium install script later
+  custom_data = base64encode(
+    file("${path.module}/dependency_install.sh")
+  )
+}
+
+output "selenium_vm_public_ip" {
+  value = azurerm_public_ip.selenium_ip.ip_address
 }
