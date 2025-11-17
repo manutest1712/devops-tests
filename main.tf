@@ -215,7 +215,7 @@ resource "azurerm_network_interface_security_group_association" "selenium_nsg_as
 # Selenium Linux VM
 #############################################
 resource "azurerm_linux_virtual_machine" "selenium_vm" {
-  name                = "test-env-vm"
+  name                = "selenium-test-vm"
   location            = var.resource_location
   resource_group_name = data.azurerm_resource_group.main.name
   size                = "Standard_B1s"
@@ -244,6 +244,11 @@ resource "azurerm_linux_virtual_machine" "selenium_vm" {
   custom_data = base64encode(
     file("${path.module}/dependency_install.sh")
   )
+  
+  # Add tags here
+  tags = {
+    selenium = "true"
+  }
 }
 
 output "selenium_vm_public_ip" {
