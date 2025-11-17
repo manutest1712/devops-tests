@@ -1,6 +1,6 @@
 provider "azurerm" {
   features {}
-  subscription_id = "630a1e98-7922-4c13-9488-39768dd9328d"
+  subscription_id = "82c40d1f-be09-4c9e-9295-ae70e625b7b5"
 }
 
 data "azurerm_resource_group" "main" {
@@ -215,7 +215,7 @@ resource "azurerm_network_interface_security_group_association" "selenium_nsg_as
 # Selenium Linux VM
 #############################################
 resource "azurerm_linux_virtual_machine" "selenium_vm" {
-  name                = "selenium-test-vm"
+  name                = "test-env-vm"
   location            = var.resource_location
   resource_group_name = data.azurerm_resource_group.main.name
   size                = "Standard_B1s"
