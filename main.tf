@@ -1,6 +1,6 @@
 provider "azurerm" {
   features {}
-  subscription_id = "82c40d1f-be09-4c9e-9295-ae70e625b7b5"
+  subscription_id = "630a1e98-7922-4c13-9488-39768dd9328d"
 }
 
 data "azurerm_resource_group" "main" {
@@ -124,7 +124,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
   name                = "self-host-agent"
   location            = var.resource_location
   resource_group_name = data.azurerm_resource_group.main.name
-  size                = "Standard_B1s"
+  size                = "Standard_B2s"
 
   admin_username                  = var.admin_username
   admin_password                  = "Staple17121980@"

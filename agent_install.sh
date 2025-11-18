@@ -59,3 +59,22 @@ echo "Cleaning up..."
 rm -f /tmp/${AGENT_FILE}
 
 echo "Azure DevOps Agent installation complete."
+
+
+# 7. --- Install Java (JDK 11) ---
+echo "Installing Java..."
+sudo apt-get install -y openjdk-11-jdk
+export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+echo "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64" | sudo tee -a /etc/environment
+echo "PATH=$JAVA_HOME/bin:$PATH" | sudo tee -a /etc/environment
+
+# 8. --- Install JMeter ---
+echo "Installing JMeter 5.6.3..."
+JMETER_VERSION="5.6.3"
+cd /opt
+sudo wget https://downloads.apache.org/jmeter/binaries/apache-jmeter-$${JMETER_VERSION}.tgz
+sudo tar -xf apache-jmeter-$${JMETER_VERSION}.tgz
+sudo mv apache-jmeter-$${JMETER_VERSION} /opt/jmeter
+sudo ln -s /opt/jmeter/bin/jmeter /usr/local/bin/jmeter  # add to PATH
+
+echo "JMeter installation completed"
