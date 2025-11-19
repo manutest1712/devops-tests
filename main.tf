@@ -1,6 +1,16 @@
+
+terraform {
+  required_providers {
+    azapi = {
+      source  = "Azure/azapi"
+      version = "~> 1.13.0"
+    }
+  }
+}
+
 provider "azurerm" {
   features {}
-  subscription_id = "630a1e98-7922-4c13-9488-39768dd9328d"
+  subscription_id = "a9ab978b-a5d4-42b1-a453-fe2690ceb40f"
 }
 
 data "azurerm_resource_group" "main" {
@@ -254,3 +264,143 @@ resource "azurerm_linux_virtual_machine" "selenium_vm" {
 output "selenium_vm_public_ip" {
   value = azurerm_public_ip.selenium_ip.ip_address
 }
+
+
+
+#############################################
+# Log analytics for selinium logs
+#############################################
+
+resource "azurerm_log_analytics_workspace" "law" {
+  name                = "law-selenium-udacity-x"
+  location            = var.resource_location
+  resource_group_name = data.azurerm_resource_group.main.name
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
+}
+
+resource "azurerm_monitor_data_collection_endpoint" "selenium_dce" {
+  name                = "selenium-dce-udacity-x"
+  location            = var.resource_location
+  resource_group_name = data.azurerm_resource_group.main.name
+}
+
+
+resource "azapi_resource" "data_collection_logs_table" {
+  name      = "SeleniumLogs_CL"
+  parent_id = azurerm_log_analytics_workspace.law.id
+  type      = "Microsoft.OperationalInsights/workspaces/tables@2022-10-01"
+
+  body = jsonencode({
+    properties = {
+      schema = {
+        name = "SeleniumLogs_CL"
+        columns = [
+          {
+            name        = "TimeGenerated"
+            type        = "datetime"
+            description = "Log timestamp"
+          },
+          {
+            name        = "RawData"
+            type        = "string"
+            description = "Entire raw log line"
+          }
+        ]
+      }
+      retentionInDays      = 30
+      totalRetentionInDays = 30
+    }
+  })
+}
+
+
+resource "azurerm_monitor_data_collection_rule" "selenium_dcr" {
+
+  name                = "selenium-custom-log-dcr"
+  location            = var.resource_location
+  resource_group_name = data.azurerm_resource_group.main.name
+  data_collection_endpoint_id = azurerm_monitor_data_collection_endpoint.selenium_dce.id
+
+	# Explicit dependency
+	
+  depends_on = [
+    azurerm_monitor_data_collection_endpoint.selenium_dce,
+	azapi_resource.data_collection_logs_table
+  ]
+  
+  destinations {
+    log_analytics {
+      workspace_resource_id = azurerm_log_analytics_workspace.law.id
+      name                  = "law-destination"
+    }
+  }
+
+  data_sources {
+    log_file {
+      name = "selenium-file-source"
+
+      file_patterns = [
+        "/var/log/selenium/*.log"
+      ]
+
+      format = "text"  # can be json, text, csv
+	  
+	  streams = [
+		"Custom-SeleniumLogs_CL"
+      ]
+
+      settings {
+        text {
+          record_start_timestamp_format = "ISO 8601"
+        }
+      }
+    }
+  }
+
+  data_flow {
+    streams      = ["Custom-SeleniumLogs_CL"]
+    destinations = ["law-destination"]
+  }
+}
+
+
+resource "azurerm_virtual_machine_extension" "ama" {
+  name                 = "AzureMonitorLinuxAgent"
+  virtual_machine_id   = azurerm_linux_virtual_machine.selenium_vm.id
+  publisher            = "Microsoft.Azure.Monitor"
+  type                 = "AzureMonitorLinuxAgent"
+  type_handler_version = "1.0"
+  auto_upgrade_minor_version = true
+  
+  depends_on = [
+    azurerm_monitor_data_collection_rule.selenium_dcr,
+	azurerm_linux_virtual_machine.selenium_vm
+  ]
+}
+
+
+
+resource "azurerm_monitor_data_collection_rule_association" "dcr_vm" {
+  name                    = "selenium-dcr-association"
+  target_resource_id      = azurerm_linux_virtual_machine.selenium_vm.id
+  data_collection_rule_id = azurerm_monitor_data_collection_rule.selenium_dcr.id
+  
+  depends_on = [
+    azurerm_virtual_machine_extension.ama
+  ]
+}
+
+resource "azurerm_monitor_data_collection_rule_association" "dce_vm" {
+  name                         = "configurationAccessEndpoint"
+  target_resource_id           = azurerm_linux_virtual_machine.selenium_vm.id
+  data_collection_endpoint_id  = azurerm_monitor_data_collection_endpoint.selenium_dce.id
+  
+    depends_on = [
+    azurerm_virtual_machine_extension.ama
+  ]
+}
+
+
+
+
