@@ -229,6 +229,10 @@ resource "azurerm_linux_virtual_machine" "selenium_vm" {
   location            = var.resource_location
   resource_group_name = data.azurerm_resource_group.main.name
   size                = "Standard_B1s"
+  
+  identity {
+    type = "SystemAssigned"
+  }
 
   admin_username                  = "ManuMP"
   admin_password                  = "Staple17121980@"   # Change this
@@ -272,7 +276,7 @@ output "selenium_vm_public_ip" {
 #############################################
 
 resource "azurerm_log_analytics_workspace" "law" {
-  name                = "law-selenium-udacity-x"
+  name                = "law-selenium-udacity-xy"
   location            = var.resource_location
   resource_group_name = data.azurerm_resource_group.main.name
   sku                 = "PerGB2018"
@@ -280,7 +284,7 @@ resource "azurerm_log_analytics_workspace" "law" {
 }
 
 resource "azurerm_monitor_data_collection_endpoint" "selenium_dce" {
-  name                = "selenium-dce-udacity-x"
+  name                = "selenium-dce-udacity-xy"
   location            = var.resource_location
   resource_group_name = data.azurerm_resource_group.main.name
 }
